@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+
+import os
+from argparse import ArgumentParser
+
+from torch.utils.data import DataLoader
+
+from mnist_vae.module import Classifier, Encoder, Decoder, VAE
+from mnist_vae.data import MnistDataset
+
+
+arg_parser = ArgumentParser()
+arg_parser.add_argument("minst_path")
+
+
+num_train_samples = 60000
+num_test_samples = 10000
+image_size = 28
+
+
+
+if __name__ == "__main__" :
+
+    args = arg_parser.parse_args()
+
+    for images, labels in DataLoader(MnistDataset(os.path.join(args.minst_path, "train"), num_train_samples, image_size), batch_size=64):
+
+        print(labels)
+
