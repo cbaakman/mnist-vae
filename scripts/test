@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+import logging
+import os
+import sys
+from argparse import ArgumentParser
+
+import torch
+from torch.nn.functional import binary_cross_entropy, cross_entropy
+from torch.utils.data import DataLoader
+
+from torchvision import datasets, transforms
+
+from mnist_vae.module import VAE, DigitClassifier
+
+
+_log = logging.getLogger(__name__)
+
+
+arg_parser = ArgumentParser()
+arg_parser.add_argument("vae_path")
+arg_parser.add_argument("classifier_path")
+arg_parser.add_argument("minst_path")
+
+num_train_samples = 60000
+num_test_samples = 10000
+image_size = 28
+
+
+if __name__ == "__main__" :
+
+    logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+
+    args = arg_parser.parse_args()
+
+    bottleneck_dim = 20
+    vae = VAE(bottleneck_dim, 1)
+    vae.load_state_dict(torch.load(args.vae_path))
+
+    classifier = DigitClassifier(bottleneck_dim)
+    classifier.load_state_dict(torch.load(args.classifier_path))
+
+    dataset = datasets.MNIST(root=args.minst_path, train=False, download=False, transform=transforms.ToTensor())
+    with torch.no_grad():
+        for images, true_labels in DataLoader(dataset, batch_size=64, num_workers=4, shuffle=True):
+            reproduced_images, bottleneck_z, predicted_mean, predicted_logvar = vae(images)
+
+            predicted_labels_scores = classifier(bottleneck_z)
+            predicted_labels = torch.argmax(predicted_labels_scores, dim=-1)
+
+            for i, true_label in enumerate(true_labels):
+                _log.debug(f"predicted: {predicted_labels[i]}, true:{true_label}")
+
+
