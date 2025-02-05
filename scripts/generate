@@ -21,6 +21,7 @@ arg_parser.add_argument("classifier_path")
 if __name__ == "__main__":
 
     bottleneck_size = 20
+    num_channels = 1
     image_directory_name = "generated-images"
 
     if not os.path.isdir(image_directory_name):
@@ -28,7 +29,7 @@ if __name__ == "__main__":
 
     args = arg_parser.parse_args()
 
-    vae = VAE(bottleneck_size, 1)
+    vae = VAE(bottleneck_size, num_channels)
     vae.eval()
     vae.load_state_dict(torch.load(args.vae_path))
     decoder = vae.decoder
