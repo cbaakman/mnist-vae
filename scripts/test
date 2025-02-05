@@ -41,6 +41,9 @@ if __name__ == "__main__" :
     classifier.load_state_dict(torch.load(args.classifier_path))
 
     dataset = datasets.MNIST(root=args.minst_path, train=False, download=False, transform=transforms.ToTensor())
+
+    num_correct = 0
+    num_evaluated = 0
     with torch.no_grad():
         for images, true_labels in DataLoader(dataset, batch_size=64, num_workers=4, shuffle=True):
             reproduced_images, bottleneck_z, predicted_mean, predicted_logvar = vae(images)
@@ -48,7 +51,10 @@ if __name__ == "__main__" :
             predicted_labels_scores = classifier(bottleneck_z)
             predicted_labels = torch.argmax(predicted_labels_scores, dim=-1)
 
-            for i, true_label in enumerate(true_labels):
-                _log.debug(f"predicted: {predicted_labels[i]}, true:{true_label}")
+            num_correct += (true_labels == predicted_labels).sum()
+            num_evaluated += true_labels.shape[0]
+
+    acc = round((100.0 * num_correct / num_evaluated).item(), 3)
+    _log.debug(f"acc: {acc} %")
 
 
