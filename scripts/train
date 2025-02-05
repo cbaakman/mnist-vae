@@ -43,7 +43,7 @@ if __name__ == "__main__" :
     if args.classifier_path is not None:
         classifier.load_state_dict(torch.load(args.classifier_path))
 
-    optimizer = torch.optim.Adam(vae.parameters())
+    optimizer = torch.optim.Adam(list(vae.parameters()) + list(classifier.parameters()))
 
     epoch_counter = 0
     while epoch_counter < args.num_epochs:
