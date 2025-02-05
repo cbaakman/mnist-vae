@@ -10,8 +10,12 @@ from torch.nn.functional import binary_cross_entropy, cross_entropy
 from torch.utils.data import DataLoader
 
 from torchvision import datasets, transforms
+import torchvision.utils
+
+from matplotlib import pyplot
 
 from mnist_vae.module import VAE, DigitClassifier
+from mnist_vae.tools.image import save_images_to_grid
 
 
 _log = logging.getLogger(__name__)
@@ -22,9 +26,6 @@ arg_parser.add_argument("vae_path")
 arg_parser.add_argument("classifier_path")
 arg_parser.add_argument("minst_path")
 
-num_train_samples = 60000
-num_test_samples = 10000
-image_size = 28
 
 
 if __name__ == "__main__" :
@@ -36,16 +37,24 @@ if __name__ == "__main__" :
     bottleneck_dim = 20
     vae = VAE(bottleneck_dim, 1)
     vae.load_state_dict(torch.load(args.vae_path))
+    vae.eval()
 
     classifier = DigitClassifier(bottleneck_dim)
     classifier.load_state_dict(torch.load(args.classifier_path))
+    classifier.eval()
 
     dataset = datasets.MNIST(root=args.minst_path, train=False, download=False, transform=transforms.ToTensor())
+
+    reproduced_image_dir = "output-images"
+    true_image_dir = "true-images"
+    for image_dir in [reproduced_image_dir, true_image_dir]:
+        if not os.path.isdir(image_dir):
+            os.mkdir(image_dir)
 
     num_correct = 0
     num_evaluated = 0
     with torch.no_grad():
-        for images, true_labels in DataLoader(dataset, batch_size=64, num_workers=4, shuffle=True):
+        for batch_index, (images, true_labels) in enumerate(DataLoader(dataset, batch_size=64, num_workers=4, shuffle=True)):
             reproduced_images, bottleneck_z, predicted_mean, predicted_logvar = vae(images)
 
             predicted_labels_scores = classifier(bottleneck_z)
@@ -54,7 +63,8 @@ if __name__ == "__main__" :
             num_correct += (true_labels == predicted_labels).sum()
             num_evaluated += true_labels.shape[0]
 
+            save_images_to_grid(images, os.path.join(true_image_dir, f"batch-{batch_index}.png"))
+            save_images_to_grid(reproduced_images, os.path.join(reproduced_image_dir, f"batch-{batch_index}.png"))
+
     acc = round((100.0 * num_correct / num_evaluated).item(), 3)
     _log.debug(f"acc: {acc} %")
-
-
