@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 
 from torchvision import datasets, transforms
 
-from mnist_vae.module import VAE, DigitClassifier
+from mnist_vae.module import VAE
 
 
 _log = logging.getLogger(__name__)
@@ -20,7 +20,6 @@ _log = logging.getLogger(__name__)
 arg_parser = ArgumentParser()
 arg_parser.add_argument("minst_path")
 arg_parser.add_argument("--vae-path")
-arg_parser.add_argument("--classifier-path")
 arg_parser.add_argument("--num-epochs", default=100, type=int)
 
 num_train_samples = 60000
@@ -34,16 +33,12 @@ if __name__ == "__main__" :
 
     args = arg_parser.parse_args()
 
-    bottleneck_dim = 20
+    bottleneck_dim = 10
     vae = VAE(bottleneck_dim, 1)
     if args.vae_path is not None:
         vae.load_state_dict(torch.load(args.vae_path))
 
-    classifier = DigitClassifier(bottleneck_dim)
-    if args.classifier_path is not None:
-        classifier.load_state_dict(torch.load(args.classifier_path))
-
-    optimizer = torch.optim.Adam(list(vae.parameters()) + list(classifier.parameters()))
+    optimizer = torch.optim.Adam(vae.parameters())
 
     epoch_counter = 0
     while epoch_counter < args.num_epochs:
@@ -54,8 +49,7 @@ if __name__ == "__main__" :
             images.to(dtype=torch.float)
 
             reproduced_images, bottleneck_z, predicted_mean, predicted_logvar = vae(images)
-
-            predicted_labels_scores = classifier(bottleneck_z)
+            predicted_labels_scores = bottleneck_z
 
             images_loss = binary_cross_entropy(reproduced_images, images, reduction='sum')
             labels_loss = cross_entropy(predicted_labels_scores, true_labels, reduction='sum')
@@ -71,6 +65,5 @@ if __name__ == "__main__" :
             optimizer.step()
 
         torch.save(vae.state_dict(), "vae.pth")
-        torch.save(classifier.state_dict(), "classifier.pth")
 
         epoch_counter += 1

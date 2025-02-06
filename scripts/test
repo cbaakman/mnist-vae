@@ -14,7 +14,7 @@ import torchvision.utils
 
 from matplotlib import pyplot
 
-from mnist_vae.module import VAE, DigitClassifier
+from mnist_vae.module import VAE
 from mnist_vae.tools.image import save_images_to_grid
 
 
@@ -23,7 +23,6 @@ _log = logging.getLogger(__name__)
 
 arg_parser = ArgumentParser()
 arg_parser.add_argument("vae_path")
-arg_parser.add_argument("classifier_path")
 arg_parser.add_argument("minst_path")
 
 
@@ -34,14 +33,10 @@ if __name__ == "__main__" :
 
     args = arg_parser.parse_args()
 
-    bottleneck_dim = 20
+    bottleneck_dim = 10
     vae = VAE(bottleneck_dim, 1)
     vae.load_state_dict(torch.load(args.vae_path))
     vae.eval()
-
-    classifier = DigitClassifier(bottleneck_dim)
-    classifier.load_state_dict(torch.load(args.classifier_path))
-    classifier.eval()
 
     dataset = datasets.MNIST(root=args.minst_path, train=False, download=False, transform=transforms.ToTensor())
 
@@ -57,7 +52,7 @@ if __name__ == "__main__" :
         for batch_index, (images, true_labels) in enumerate(DataLoader(dataset, batch_size=64, num_workers=4, shuffle=True)):
             reproduced_images, bottleneck_z, predicted_mean, predicted_logvar = vae(images)
 
-            predicted_labels_scores = classifier(bottleneck_z)
+            predicted_labels_scores = bottleneck_z
             predicted_labels = torch.argmax(predicted_labels_scores, dim=-1)
 
             num_correct += (true_labels == predicted_labels).sum()

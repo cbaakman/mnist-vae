@@ -37,7 +37,7 @@ class Image28x28Decoder(torch.nn.Module):
 
         transitional_dim = 16
 
-        self.fc = torch.nn.Linear(20, 8 * self.image_size * self.image_size)
+        self.fc = torch.nn.Linear(bottleneck_dim, 8 * self.image_size * self.image_size)
 
         self.relu = torch.nn.ReLU()
         self.sigmoid = torch.nn.Sigmoid()
@@ -54,24 +54,6 @@ class Image28x28Decoder(torch.nn.Module):
         x = self.relu(self.conv1(x))
         x = self.relu(self.conv2(x))
         y = self.sigmoid(self.conv3(x)).reshape(batch_size, self.num_image_channels, self.image_size, self.image_size)
-
-        return y
-
-class DigitClassifier(torch.nn.Module):
-    def __init__(self, bottleneck_dim: int):
-        super(DigitClassifier, self).__init__()
-
-        transitional_dim = 50
-
-        self.module = torch.nn.Sequential(
-            torch.nn.Linear(bottleneck_dim, transitional_dim),
-            torch.nn.ReLU(),
-            torch.nn.Linear(transitional_dim, 10),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-
-        y = self.module(x)
 
         return y
 
